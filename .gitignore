@@ -1,3 +1,4 @@
 archive
-/dataset.json
+# /dataset.json
 /src/__pycache__
+/src/logs/dataset_gen.log

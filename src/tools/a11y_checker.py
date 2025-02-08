@@ -7,6 +7,15 @@ class AccessibilityChecker:
     def __init__(self):
         self.violations = []
         self.score = 100
+        # Define score deductions per violation type
+        self.deductions = {
+            'missing main landmark': 15,
+            'missing main heading': 15,
+            'missing alt attribute': 10,
+            'missing id attribute': 5,
+            'missing associated label': 10,
+            'default': 10  # Default deduction for unlisted violations
+        }
 
     def check_html(self, html: str) -> Tuple[List[Dict], int]:
         """Check HTML for accessibility and return (violations, score)"""
@@ -22,7 +31,12 @@ class AccessibilityChecker:
         self._check_landmarks(soup)
         self._check_headings(soup)
         
-        return self.violations, max(0, self.score)
+        # Apply score deductions for each violation
+        for violation in self.violations:
+            deduction = self.deductions.get(violation['issue'], self.deductions['default'])
+            self.score = max(0, self.score - deduction)
+        
+        return self.violations, self.score
 
     def _check_images(self, soup: BeautifulSoup):
         """Check image accessibility"""

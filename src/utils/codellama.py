@@ -1,6 +1,8 @@
 import json
 import requests
 from typing import Optional
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
 
 def generate_with_codellama(prompt: str) -> Optional[str]:
     """Generate response using local CodeLlama API"""
@@ -21,6 +23,27 @@ def generate_with_codellama(prompt: str) -> Optional[str]:
         return full_response
     except Exception as e:
         print(f"Error generating with CodeLlama: {str(e)}")
+        return None
+    
+
+def load_and_generate_with_codellama(prompt: str) -> Optional[str]:
+    """Load CodeLlama model and tokenizer, and generate response"""
+    try:
+        model_name = "codellama"
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(model_name)
+
+        # Check if GPU is available and move model to GPU
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model.to(device)
+
+        inputs = tokenizer(prompt, return_tensors="pt").to(device)
+        outputs = model.generate(**inputs)
+        
+        generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return generated_text
+    except Exception as e:
+        print(f"Error loading and generating with CodeLlama: {str(e)}")
         return None
 
 def extract_code(response: str) -> Optional[str]:

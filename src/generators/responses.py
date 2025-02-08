@@ -1,6 +1,6 @@
 # src/generators/responses.py
 from typing import Dict
-from ..utils.codellama import generate_with_codellama, extract_code
+from ..utils.codellama import generate_with_codellama, extract_code, load_and_generate_with_codellama
 
 def create_html_prompt(prompt: str, features: Dict) -> str:
     """Create a prompt following CodeLlama's format"""
@@ -18,13 +18,16 @@ def create_html_prompt(prompt: str, features: Dict) -> str:
         prompt=prompt
     )
 
-def generate_response(prompt: str, features: Dict) -> str:
+def generate_response(prompt: str, features: Dict, use_api: bool = True) -> str:
     """Generate accessible HTML response using CodeLlama"""
     # Create formatted prompt
     formatted_prompt = create_html_prompt(prompt, features)
     
     # Generate response using CodeLlama
-    response = generate_with_codellama(formatted_prompt)
+    if use_api:
+        response = generate_with_codellama(formatted_prompt)
+    else:
+        response = load_and_generate_with_codellama(formatted_prompt)
     if not response:
         return ""
     

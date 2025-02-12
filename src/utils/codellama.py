@@ -29,7 +29,7 @@ def generate_with_codellama(prompt: str) -> Optional[str]:
 def load_and_generate_with_codellama(prompt: str) -> Optional[str]:
     """Load CodeLlama model and tokenizer, and generate response"""
     try:
-        model_name = "codellama"
+        model_name = "meta-llama/CodeLlama-7b-hf"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForCausalLM.from_pretrained(model_name)
 

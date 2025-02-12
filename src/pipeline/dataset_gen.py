@@ -1,5 +1,6 @@
 # src/pipeline/dataset_gen.py
 import json
+import os
 from typing import List, Dict
 from ..generators.prompts import generate_prompt
 from ..generators.responses import generate_response
@@ -18,6 +19,28 @@ class DatasetGenerator:
     def __init__(self, output_file: str = "dataset.json"):
         self.output_file = output_file
         self.dataset = []
+        # Initialize empty dataset file if it doesn't exist
+        if not os.path.exists(output_file):
+            with open(output_file, 'w') as f:
+                json.dump([], f)
+
+    def save_item(self, item: Dict) -> None:
+        """Save a single item to the dataset file"""
+        try:
+            with open(self.output_file, 'r+') as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    data = []
+                
+                data.append(item)
+                f.seek(0)
+                json.dump(data, f, indent=2)
+                f.truncate()
+                
+            logging.info(f"Successfully saved item to {self.output_file}")
+        except Exception as e:
+            logging.error(f"Error saving item: {str(e)}")
 
     def generate(self, size: int) -> None:
         successful_pairs = 0
@@ -28,7 +51,7 @@ class DatasetGenerator:
                 print(f"Attempt {attempts+1}, Successful pairs: {successful_pairs}")
                 
                 prompt, features = generate_prompt()
-                html_response = generate_response(prompt, features)
+                html_response = generate_response(prompt, features, use_api=True)
                 
                 if not html_response or len(html_response.strip()) == 0:
                     print("No valid HTML response generated")
@@ -54,7 +77,7 @@ class DatasetGenerator:
                     # Calculate combined score
                     total_score = (structure_score + a11y_score) / 2
                     
-                    self.dataset.append({
+                    item = {
                         "prompt": prompt,
                         "response": html_response,
                         "features": features,
@@ -62,10 +85,13 @@ class DatasetGenerator:
                         "accessibility_score": a11y_score,
                         "total_score": total_score,
                         "violations": violations
-                    })
+                    }
+                    
+                    self.dataset.append(item)
+                    self.save_item(item)  # Save immediately after successful validation
                     
                     successful_pairs += 1
-                    print(f"Successfully added pair {successful_pairs} (Score: {total_score})")
+                    print(f"Successfully added and saved pair {successful_pairs} (Score: {total_score})")
                     
                 except Exception as e:
                     print(f"Validation error: {str(e)}")
@@ -79,9 +105,14 @@ class DatasetGenerator:
                 attempts += 1
     
     def save(self) -> None:
-        print(f"Saving {len(self.dataset)} pairs to {self.output_file}")
-        with open(self.output_file, 'w') as f:
-            json.dump(self.dataset, f, indent=2)
+        """Final save - ensures all data is properly saved"""
+        print(f"Performing final save of {len(self.dataset)} pairs to {self.output_file}")
+        try:
+            with open(self.output_file, 'w') as f:
+                json.dump(self.dataset, f, indent=2)
+            logging.info(f"Final save completed successfully")
+        except Exception as e:
+            logging.error(f"Error during final save: {str(e)}")
 
 # def main(size: int = 5):
 #     generator = DatasetGenerator()

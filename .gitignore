@@ -1,4 +1,6 @@
 archive
 # /dataset.json
-/src/__pycache__
-/src/logs/dataset_gen.log
+/src/__pycache__/
+/src/logs
+/dataset_10k.json
+/test.json

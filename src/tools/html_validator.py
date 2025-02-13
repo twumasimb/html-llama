@@ -2,6 +2,8 @@
 from html.parser import HTMLParser
 from typing import List, Dict, Tuple
 import re
+from bs4 import BeautifulSoup
+import gc
 
 class HTMLValidationParser(HTMLParser):
     def __init__(self):
@@ -55,6 +57,10 @@ def validate_html_structure(html: str) -> Tuple[bool, int]:
     except Exception as e:
         print(f"HTML validation error: {str(e)}")
         return False, 0
+    finally:
+        # Clear parser resources
+        parser.close()
+        gc.collect()
 
 def get_validation_errors(html: str) -> List[Dict]:
     """Get list of HTML validation errors"""
@@ -64,3 +70,7 @@ def get_validation_errors(html: str) -> List[Dict]:
         return parser.errors
     except Exception as e:
         return [{'error': str(e), 'line': 0}]
+    finally:
+        # Clear parser resources
+        parser.close()
+        gc.collect()

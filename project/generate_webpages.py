@@ -1,12 +1,19 @@
 # generate_webpages.py
 import argparse
 import logging
+import json
+import os
+import re
 from tqdm import tqdm
 from resources import ACCESSIBILITY_PROMPT_TEMPLATE
 from utils import load_json, llm_generate, save_json
 
 def generate_webpages(prompts, num_candidates, output_file):
-    import re
+    # Initialize the output file with an empty array if it doesn't exist
+    if not os.path.exists(output_file):
+        with open(output_file, 'w') as f:
+            json.dump([], f)
+    
     results = []
     for idx, prompt in enumerate(tqdm(prompts, desc="Generating webpages")):
         candidate_list = []
@@ -24,13 +31,28 @@ def generate_webpages(prompts, num_candidates, output_file):
                 cleaned_candidate = re.sub(r'^```|```$', '', candidate).strip()
                 
             candidate_list.append(cleaned_candidate)
-        results.append({
+        
+        # Create entry for current prompt
+        current_entry = {
             "prompt": prompt,
             "candidates": candidate_list
-        })
+        }
+        
+        # Append to in-memory results
+        results.append(current_entry)
+        
+        # Update the JSON file with the new entry
+        with open(output_file, 'r') as f:
+            current_results = json.load(f)
+        
+        current_results.append(current_entry)
+        
+        with open(output_file, 'w') as f:
+            json.dump(current_results, f, indent=4)
+        
         if (idx+1) % 100 == 0:
-            save_json(results, output_file)
-    save_json(results, output_file)
+            logging.info(f"Generated candidates for {idx+1}/{len(prompts)} prompts")
+    
     return results
 
 def main():

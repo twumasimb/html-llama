@@ -2,6 +2,8 @@
 import argparse
 import random
 import logging
+import json
+import os
 from tqdm import tqdm
 from resources import webpage_purposes
 from utils import save_json, llm_generate
@@ -11,15 +13,16 @@ def generate_prompts(num_prompts, output_file):
     Generate a specified number of prompts using LLaMa 2-7B.
     Prompts focus on accessible webpage ideas.
     """
+    # Initialize the output file with an empty array if it doesn't exist
+    if not os.path.exists(output_file):
+        with open(output_file, 'w') as f:
+            json.dump([], f)
+    
     prompts = []
     
-
-    
     for i in tqdm(range(num_prompts), desc="Generating prompts"):
-
         random_purpose = random.choice(webpage_purposes)
-        # print(f"Random purpose: {random_purpose}")
-
+        
         base_prompt = (
         f"""
             I want to create webpage idea prompts. Here's how:
@@ -40,20 +43,27 @@ Purpose: "{random_purpose}"
         """
     )
 
-
-        # prompt_text = f"{base_prompt}"
         generated = llm_generate(base_prompt, model="deepseek-r1")
         if generated is None:
             logging.warning(f"Failed to generate prompt {i+1}, skipping...")
             continue
+        
         # Use the first line of the generated text as the prompt.
         prompt_line = generated.strip().split('\n')[0]
         prompts.append(prompt_line)
+        
+        # Append the new prompt to the existing JSON file
+        with open(output_file, 'r') as f:
+            current_prompts = json.load(f)
+        
+        current_prompts.append(prompt_line)
+        
+        with open(output_file, 'w') as f:
+            json.dump(current_prompts, f, indent=4)
+        
         if (i+1) % 1000 == 0:
             logging.info(f"Generated {i+1}/{num_prompts} prompts")
-            # Save progress incrementally.
-            save_json(prompts, output_file)
-    save_json(prompts, output_file)
+    
     return prompts
 
 def main():

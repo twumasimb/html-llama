@@ -8,7 +8,7 @@ from tqdm import tqdm
 from resources import ACCESSIBILITY_PROMPT_TEMPLATE
 from utils import load_json, llm_generate, save_json
 
-def generate_webpages(prompts, num_candidates, output_file):
+def generate_webpages(prompts, output_file):
     # Initialize the output file with an empty array if it doesn't exist
     if not os.path.exists(output_file):
         with open(output_file, 'w') as f:
@@ -16,26 +16,30 @@ def generate_webpages(prompts, num_candidates, output_file):
     
     results = []
     for idx, prompt in enumerate(tqdm(prompts, desc="Generating webpages")):
-        candidate_list = []
-        for i in range(num_candidates):
-            solution_prompt = f"Generate accessible webpage HTML code for the following prompt:\n{prompt} and the following accessibility prompt:\n{ACCESSIBILITY_PROMPT_TEMPLATE}"
-            candidate = llm_generate(solution_prompt, model="deepseek-r1")
-            
-            # Improved regex to clean the code - removes backticks and language identifier
-            pattern = r"```(?:html|)\n?(.*?)```"
-            match = re.search(pattern, candidate, re.DOTALL)
-            if match:
-                cleaned_candidate = match.group(1).strip()
+        solution_prompt = f"Generate accessible webpage HTML code for the following prompt:\n{prompt} and the following accessibility prompt:\n{ACCESSIBILITY_PROMPT_TEMPLATE}"
+        candidate = llm_generate(solution_prompt, model="deepseek-r1:14b")
+        # print(candidate) #For debugging
+        if candidate is not None:
+            # Find the code created
+            code_pattern = r"```(?:html|)\n?(.*?)```"
+            code_match = re.search(code_pattern, candidate, re.DOTALL)
+            if code_match:
+                code = code_match.group(1).strip()
             else:
                 # If no backticks found, just strip any backticks that might be at start/end
-                cleaned_candidate = re.sub(r'^```|```$', '', candidate).strip()
-                
-            candidate_list.append(cleaned_candidate)
-        
+                code = re.sub(r'^```|```$', '', candidate).strip()
+            
+            # Find reasoning    
+            reasoning_pattern = r"<think>(.*?)</think>"
+            reasoning_match = re.search(reasoning_pattern, candidate, re.DOTALL)
+            if reasoning_match:
+                reasoning = reasoning_match.group(1).strip()
+
         # Create entry for current prompt
         current_entry = {
             "prompt": prompt,
-            "candidates": candidate_list
+            "reasoning": reasoning,
+            "code": code
         }
         
         # Append to in-memory results
@@ -58,15 +62,13 @@ def generate_webpages(prompts, num_candidates, output_file):
 def main():
     parser = argparse.ArgumentParser(description="Generate webpages using CodeLLama-2-7B based on prompts")
     parser.add_argument("--prompts", type=str, default="prompts_dedup.json", help="JSON file with deduplicated prompts")
-    parser.add_argument("--output", type=str, default="webpages.json", help="Output JSON file for generated webpages")
-    parser.add_argument("--num_candidates", type=int, default=10, help="Number of candidate solutions per prompt")
-    parser.add_argument("--model", type=str, default="meta-llama/CodeLlama-2-7b-hf", help="LLM model name for webpage generation")
+    parser.add_argument("--output", type=str, default="generated_dataset/webpages.json", help="Output JSON file for generated webpages")
     parser.add_argument("--device", type=int, default=0, help="Device id: -1 for CPU, 0 for GPU")
     args = parser.parse_args()
     
     prompts = load_json(args.prompts)
     # We don't need to load the model as llm_generate connects to Ollama API directly
-    generate_webpages(prompts, args.num_candidates, args.output)
+    generate_webpages(prompts, args.output)
     
 if __name__ == "__main__":
     main()

@@ -2,3 +2,10 @@
 /prompts.json
 /final_dataset.json
 /webpages.json
+/files
+/generated_dataset
+/final_dataset
+/finetune_model
+/prompt_preprocessing
+/embeddings
+/__pycache__

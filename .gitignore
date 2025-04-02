@@ -1,5 +1,1 @@
-archive
-# /dataset.json
-/src/__pycache__/
-/src/logs
-/test.json
+/archive

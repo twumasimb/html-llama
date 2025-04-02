@@ -293,5 +293,4 @@ When generating HTML, CSS, or JavaScript code, adhere to the following accessibi
 
 When generating code, prioritize these accessibility features even if they aren't explicitly requested, as they are fundamental to creating inclusive web experiences.
 
-
 """

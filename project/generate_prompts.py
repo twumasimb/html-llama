@@ -21,42 +21,41 @@ def generate_prompts(num_prompts, output_file):
     prompts = []
     
     for i in tqdm(range(num_prompts), desc="Generating prompts"):
-        random_purpose = random.choice(webpage_purposes)
-        
-        base_prompt = (
-        f"""
-            I want to create webpage idea prompts. Here's how:
 
-1. I'll give you a purpose from my list (like "3D modeling gallery")
-2. You'll create a short prompt asking for HTML code for that purpose
-3. Keep prompts under 100 words
+        prompt_template = """
+Generate a unique and concise prompt related to web development. 
+The prompt should be a specific task or question that a developer might ask when building a website, specifically frontend development, web design, and frameworks.
 
-Example:
-Purpose: "3D modeling gallery"
-Output prompt: "Write HTML code for a webpage that displays a 3D modeling gallery."
+Each prompt should be:
+- Clear and specific
+- Concise (no more than 2-3 sentences)
+- Relevant to web development
+- End with a question or task to solve
 
-Your job is to take any purpose I give you and turn it into a clear prompt asking for HTML code for that specific type of webpage.
+Examples of prompts:
+- "Create a website for a bookkeeping business"
+- "Write HTML and CSS code for a restaurant website"
+- "Generate code for a portfolio webpage using HTML, CSS and JavaScript"
+- "Let's create a website for an e-commerce business that shows the list of items available and the prices. The website should be interactive and nicely colored"
+- "Generate code for a kids toy website, where kids can share their toys"
 
-Does this make sense? If yes, I'll start giving you purposes from my list.
+Generate the prompt in the same format as the examples above. Be creative to include any possible use case. Focus on single webpage apps
+"""
 
-Purpose: "{random_purpose}"
-        """
-    )
-
-        generated = llm_generate(base_prompt, model="deepseek-r1")
+        generated = llm_generate(prompt_template, model="deepseek-r1:14b")
         if generated is None:
             logging.warning(f"Failed to generate prompt {i+1}, skipping...")
             continue
         
         # Use the first line of the generated text as the prompt.
-        prompt_line = generated.strip().split('\n')[0]
-        prompts.append(prompt_line)
+        # prompt_line = generated.strip().split('\n')[0]
+        prompts.append(generated)
         
         # Append the new prompt to the existing JSON file
         with open(output_file, 'r') as f:
             current_prompts = json.load(f)
         
-        current_prompts.append(prompt_line)
+        current_prompts.append(generated)
         
         with open(output_file, 'w') as f:
             json.dump(current_prompts, f, indent=4)

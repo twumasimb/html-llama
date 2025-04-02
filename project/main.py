@@ -22,13 +22,12 @@ def run_deduplicate_prompts(input_file, output_file):
         "--output", output_file
     ], check=True)
 
-def run_generate_webpages(prompts_file, output, num_candidates, model, device):
+def run_generate_webpages(prompts_file, output, num_candidates, device):
     subprocess.run([
         "python", "generate_webpages.py",
         "--prompts", prompts_file,
         "--output", output, 
         "--num_candidates", str(num_candidates),
-        "--model", model,
         "--device", str(device)
     ], check=True)
 
@@ -43,6 +42,7 @@ def main():
     parser.add_argument("--llama_model", type=str, default="meta-llama/Llama-2-70b", help="Model for prompt generation")
     parser.add_argument("--code_llama_model", type=str, default="meta-llama/CodeLlama-7b-hf", help="Model for webpage generation")
     parser.add_argument("--device", type=int, default=-1, help="Device id: -1 for CPU, 0 for GPU")
+    parser.add_argument("--accessibility_threshold", type=float, default=0.7, help="Threshold for accessibility score (0-1)")
     args = parser.parse_args()
     
     logging.info("Starting the end-to-end pipeline...")
@@ -58,7 +58,7 @@ def main():
     
     # Step 3: Generate webpages for each deduplicated prompt.
     logging.info("Generating webpages...")
-    run_generate_webpages(args.dedup_file, args.webpages_file, args.num_candidates, args.code_llama_model, args.device)
+    run_generate_webpages(args.dedup_file, args.webpages_file, args.num_candidates, args.device)
     
     # Step 4: Select the best candidate with progress bar
     logging.info("Selecting best candidate that passes accessibility tests...")
@@ -68,17 +68,22 @@ def main():
         prompt = entry["prompt"]
         candidates = entry["candidates"]
         best_candidate = None
+        best_score = 0
+        
         for candidate in candidates:
-            if accessibility_test(candidate):
+            score = accessibility_test(candidate)
+            if score >= args.accessibility_threshold and score > best_score:
                 best_candidate = candidate
-                break
+                best_score = score
+        
         if best_candidate:
             final_dataset.append({
                 "prompt": prompt,
-                "solution": best_candidate
+                "solution": best_candidate,
+                "accessibility_score": best_score
             })
     save_json(final_dataset, args.final_dataset)
-    logging.info(f"Final dataset saved to {args.final_dataset}")
+    logging.info(f"Final dataset saved to {args.final_dataset} with {len(final_dataset)} entries")
 
 if __name__ == "__main__":
     main()

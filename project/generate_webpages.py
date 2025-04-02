@@ -19,18 +19,21 @@ def generate_webpages(prompts, num_candidates, output_file):
         candidate_list = []
         for i in range(num_candidates):
             solution_prompt = f"Generate accessible webpage HTML code for the following prompt:\n{prompt} and the following accessibility prompt:\n{ACCESSIBILITY_PROMPT_TEMPLATE}"
-            candidate = llm_generate(solution_prompt, model="deepseek-r1")
+            candidate = llm_generate(solution_prompt, model="deepseek-r1:14b")
             
-            # Improved regex to clean the code - removes backticks and language identifier
-            pattern = r"```(?:html|)\n?(.*?)```"
-            match = re.search(pattern, candidate, re.DOTALL)
-            if match:
-                cleaned_candidate = match.group(1).strip()
+            if candidate is not None:
+                # Improved regex to clean the code - removes backticks and language identifier
+                pattern = r"```(?:html|)\n?(.*?)```"
+                match = re.search(pattern, candidate, re.DOTALL)
+                if match:
+                    cleaned_candidate = match.group(1).strip()
+                else:
+                    # If no backticks found, just strip any backticks that might be at start/end
+                    cleaned_candidate = re.sub(r'^```|```$', '', candidate).strip()
+                    
+                candidate_list.append(cleaned_candidate)
             else:
-                # If no backticks found, just strip any backticks that might be at start/end
-                cleaned_candidate = re.sub(r'^```|```$', '', candidate).strip()
-                
-            candidate_list.append(cleaned_candidate)
+                candidate_list.append("")
         
         # Create entry for current prompt
         current_entry = {
@@ -58,9 +61,8 @@ def generate_webpages(prompts, num_candidates, output_file):
 def main():
     parser = argparse.ArgumentParser(description="Generate webpages using CodeLLama-2-7B based on prompts")
     parser.add_argument("--prompts", type=str, default="prompts_dedup.json", help="JSON file with deduplicated prompts")
-    parser.add_argument("--output", type=str, default="webpages.json", help="Output JSON file for generated webpages")
+    parser.add_argument("--output", type=str, default="generated_dataset/webpages.json", help="Output JSON file for generated webpages")
     parser.add_argument("--num_candidates", type=int, default=10, help="Number of candidate solutions per prompt")
-    parser.add_argument("--model", type=str, default="meta-llama/CodeLlama-2-7b-hf", help="LLM model name for webpage generation")
     parser.add_argument("--device", type=int, default=0, help="Device id: -1 for CPU, 0 for GPU")
     args = parser.parse_args()
     

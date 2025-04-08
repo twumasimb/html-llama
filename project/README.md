@@ -22,3 +22,4 @@ Finally, to run the entire pipeline:
 python main.py --num_prompts 100000 --num_candidates 10 --llama_model meta-llama/Llama-2-70b --code_llama_model meta-llama/CodeLlama-2-7b-hf --device 0
 ```
 
+Added a version of submod_deduplication to archive which works only on prompts.

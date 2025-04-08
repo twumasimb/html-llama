@@ -225,72 +225,296 @@ webpage_purposes = [
 ]
 
 
-ACCESSIBILITY_PROMPT_TEMPLATE = """
-# Web Accessibility Requirements
+# ACCESSIBILITY_PROMPT_TEMPLATE = """
+# # Web Accessibility Requirements
 
-When generating HTML, CSS, or JavaScript code, adhere to the following accessibility guidelines based on WCAG principles. These requirements ensure that web content is perceivable, operable, understandable, and robust for all users, including those using assistive technologies.
+# When generating HTML, CSS, or JavaScript code, adhere to the following accessibility guidelines based on WCAG principles. These requirements ensure that web content is perceivable, operable, understandable, and robust for all users, including those using assistive technologies.
 
-## Perceivable
+# ## Perceivable
 
-1. **Images and iframes must have alt attributes**
+# 1. **Images and iframes must have alt attributes**
     
-    - All `<img>` elements must include descriptive `alt` attributes
-    - All `<iframe>` elements must include `alt` attributes to provide context
-2. **Form elements must be properly labeled**
+#     - All `<img>` elements must include descriptive `alt` attributes
+#     - All `<iframe>` elements must include `alt` attributes to provide context
+#     for example 
+#      - This is incorrect: <iframe src="https://www.w3schools.com"></iframe> 
+#      - This is CORRECT: <iframe src="https://www.w3schools.com" title="W3Schools Free Online Web Tutorials"></iframe> 
+
+#      - This is incorrect: <input type="number" alt="quantity" id="quantity" name="quantity" min="1" required>
+#      - This is correct: <input type="number" id="quantity" name="quantity" min="1" required>
+
+#      - This is incorrect: <label for="name"></label><input type="text" id="name" name="name" required>
+#      - This is correct: <label for="name">Name</label><input type="text" id="name" name="name" required>
+
+#      - This is incorrect:<input type="text" id="name" name="name" placeholder="Your name">
+#      - This is correct: <label for="name">Name:</label><input type="text" id="name" name="name" placeholder="Your name">
+
+#      - This is incorrect:<input type="password" id="pwd" name="pwd">
+#      - This is correct:<label for="pwd">Password</label><input type="password" id="pwd" name="pwd">
+
+#      - This is incorrect:<input type="radio" id="1" name="fav_number" value="1"><label for="1"></label><br>
+#      - This is correct:<input type="radio" id="1" name="fav_number" value="1"><label for="1"></label>1<br>
+
+#      - This is incorrect:<label for="sort"></label><select id="sort">
+#      - This is correct:<label for="sort">Sort</label><select id="sort">
+
+#      - This is incorrect:<label for="myfile"></label><input type="file" id="myfile" name="myfile">
+#      - This is correct:<label for="myfile">My File</label><input type="file" id="myfile" name="myfile">
+
+#      - This is incorrect:<input type="file" id="myfile" name="myfile">
+#      - This is correct:<label for="myfile">I have a file</label><br><input type="file" id="myfile" name="myfile">
+
+#      - This is incorrect:<input type="checkbox" id="vehicle2" name="vehicle2" value="Car">
+#      - This is correct:<label for="vehicle2">I have a car</label><br><input type="checkbox" id="vehicle2" name="vehicle2" value="Car">
+
+#      - This is incorrect:<button class="play-btn"></button>
+#      - This is correct:<button class="play-btn">Play</button>
+
+#      - This is incorrect:<a href="https://www.facebook.com/" class="icon-link"><i class="fa fa-facebook-f"></i></a>
+#      - This is correct:<a href="https://www.facebook.com/" class="icon-link"><em class="fa fa-facebook-f"></em></a>
+
+#      - This is incorrect:<font size="5">Description of the book...</font>
+#      - This is correct:<p>Description of the book...</p>
+
+#      - This is incorrect:<a href="https://www.facebook.com/" class="icon-link"><i class="fa fa-facebook-f"></i></a>
+#      - This is correct:<a href="https://www.facebook.com/" class="icon-link"><em class="fa fa-facebook-f"></em></a>
+
+#      - This is incorrect:<h2><b>Discover Our Bookstore</b></h2>
+#      - This is correct:<h2>Discover Our Bookstore</h2>
+
+#      - This is incorrect:<p><b>Delicious food descriptions go here...</b></p>
+#      - This is correct:<p>Delicious food descriptions go here...</p>
+
+#      - This is incorrect:<p><i>Lorem ipsum dolor sit amet, consectetur adipiscing elit. ...</i></p>
+#      - This is correct:<p><em>Lorem ipsum dolor sit amet, consectetur adipiscing elit. ...</em></p>
+
+#      - This is incorrect:<a onmouseover="sample()" href="#">Home</a>
+#      - This is correct:<a onmouseover="sample()" onfocus="sample()" href="#">Home</a>
+
+#      - This is incorrect:<section id="video-container" onmouseout="PauseVideo()"><h2>Our Story</h2><div id="video-container"></div></section>
+#      - This is correct:<section id="video-container" onmouseout="PauseVideo()" onblur="PauseVideo()"><h2>Our Story</h2><div id="video-container"></div></section>
+
+#      - This is incorrect:<button onmousedown="showMessage()">Click me</button>
+#      - This is correct:<button onmousedown="showMessage()" onkeydown="showMessage()" >Click me</button>
+
+#      - This is incorrect:<marquee>Hospital Management System</marquee>
+#      - This is correct:<h1>Hospital Management System</h1>
+
+#      - This is incorrect:<a href="#"></a>
+#      - This is correct:<a href="#">Contact</a>
+
+#      - This is incorrect:<html>
+#      - This is correct:<html lang="en">
+
+#      - This is incorrect:<html lang="ex">
+#      - This is correct:<html lang="en">
+
+#      - This is incorrect:<label for="style"></label><select id="style">
+#      - This is correct:<label for="style">Style</label><select id="style">
+
+#      - This is incorrect:<label for="email">Email:</label><label for="email">Email:</label><input type="email" id="email" name="email>
+#      - This is correct:<label for="email">Email:</label><input type="email" id="email" name="email>
+
+#      - This is incorrect:<section id="video-container"><h2>Our Story</h2><div id="video-container"></div></section>
+#      - This is correct:<section id="video-section"><h2>Our Story</h2><div id="video-container"></div></section>
+
+#      - This is incorrect:<li><a href="#">Services</li>
+#      - This is correct:<li><a href="#">Services</a></li>
+
+#      - This is incorrect:<source src="bookstore-video.mp4" type="video/mp4" />
+#      - This is correct:<video controls><source src="bookstore-video.mp4" type="video/mp4">Your browser does not support the video tag.</video>
+
+#      - This is incorrect: <select id="filter"><option value="genre">Genre</option><option value="author">Author</option><!-- Add more filter options --></select>
+#      - This is correct: <label for="filter">Filter</label><select id="filter><option value="genre">Genre</option><option value="author">Author</option><!-- Add more filter options --></select>
+
+#      - This is incorrect:<header style="background-color: #4CAF50; color: white;"><h2>Grocery Store</h2></header>
+#      - This is correct:<header style="background-color: #4CAF50; color: white;"><h1>Grocery Store</h1></header>
+
+#      - This is incorrect:<h3>Browse Music</h3><!-- Add music cards with images, artist names, and play buttons --><div class="music-card"><img src="song1.jpg" alt="Song 1"><h2>Song 1</h2><p><b>Artist Name</b></p><button class="play-btn">Play</button></div>
+#      - This is correct:<h3>Browse Music</h3><!-- Add music cards with images, artist names, and play buttons --><div class="music-card"><img src="song1.jpg" alt="Song 1"><h4>Song 1</h4><p><b>Artist Name</b></p><button class="play-btn">Play</button></div>
+
+#      - This is incorrect:<h4>About Us</h4><h3>Provide information about the hospital's history, mission, and values.</h3>
+#      - This is correct:<h4>About Us</h4><h5>Provide information about the hospital's history, mission, and values.</h5>
+
+#      - This is incorrect:<header><h1 style="color: rgb(255, 255, 255); background-color: rgb(0, 0, 0);">Welcome to DELL Laptops<h3>Ready to explore</h3></h1><p style="color: rgb(255, 255, 255); background-color: rgb(0, 0, 0);">Discover the latest innovation in computing</p></header>
+#      - This is correct:<header><h1 style="color: rgb(255, 255, 255); background-color: rgb(0, 0, 0);">Welcome to DELL Laptops</h1><p style="color: rgb(255, 255, 255); background-color: rgb(0, 0, 0);"> the latest innovation in computing</p></header>
+
+# 2. **Form elements must be properly labeled**
     
-    - All form controls (buttons, inputs, checkboxes, radio buttons, file inputs, select elements) must have associated text labels
-    - Labels must contain descriptive text content
-    - Use `<label>` elements properly associated with form controls
-    - Only password inputs should have alt attributes among input elements
-3. **Avoid deprecated formatting elements**
+#     - All form controls (buttons, inputs, checkboxes, radio buttons, file inputs, select elements) must have associated text labels
+#     - Labels must contain descriptive text content
+#     - Use `<label>` elements properly associated with form controls
+#     - Only password inputs should have alt attributes among input elements
+# 3. **Avoid deprecated formatting elements**
     
-    - Don't use `<b>`, `<i>`, or `<font>` tags
-    - Use `<strong>` or `<em>` for emphasis, or CSS for styling
-4. **Media elements must be user-controlled**
+#     - Don't use `<b>`, `<i>`, or `<font>` tags
+#     - Use `<strong>` or `<em>` for emphasis, or CSS for styling
+# 4. **Media elements must be user-controlled**
     
-    - Avoid `autoplay` attributes for audio/video elements
-    - Always include `controls` attributes for media elements
+#     - Avoid `autoplay` attributes for audio/video elements
+#     - Always include `controls` attributes for media elements
 
-## Operable
+# ## Operable
 
-1. **Ensure keyboard accessibility**
+# 1. **Ensure keyboard accessibility**
     
-    - For any element with `onmousedown` events, include corresponding `onkeydown` events
-    - Make all interactive elements keyboard accessible
-2. **Avoid automatic page refreshes and movement**
+#     - For any element with `onmousedown` events, include corresponding `onkeydown` events
+#     - Make all interactive elements keyboard accessible
+# 2. **Avoid automatic page refreshes and movement**
     
-    - Don't use `<meta>` refresh with timeouts
-    - Don't use the deprecated `<marquee>` element
-3. **Provide proper document structure**
+#     - Don't use `<meta>` refresh with timeouts
+#     - Don't use the deprecated `<marquee>` element
+# 3. **Provide proper document structure**
     
-    - Include a non-empty `<title>` element
-    - All anchor (`<a>`) elements must contain text content
+#     - Include a non-empty `<title>` element
+#     - All anchor (`<a>`) elements must contain text content
 
-## Understandable
+# ## Understandable
 
-1. **Specify document language**
+# 1. **Specify document language**
     
-    - Include a valid `lang` attribute on the HTML element
-    - Use standard language codes (e.g., "en", "es", "fr")
-2. **Maintain clear form structure**
+#     - Include a valid `lang` attribute on the HTML element
+#     - Use standard language codes (e.g., "en", "es", "fr")
+# 2. **Maintain clear form structure**
     
-    - Avoid multiple labels for a single input element
+#     - Avoid multiple labels for a single input element
 
-## Robust
+# ## Robust
 
-1. **Ensure valid markup**
-    - Use unique ID attributes (no duplicates)
-    - Include complete start and end tags for all elements
-    - Follow HTML5 standards
+# 1. **Ensure valid markup**
+#     - Use unique ID attributes (no duplicates)
+#     - Include complete start and end tags for all elements
+#     - Follow HTML5 standards
 
-## General Best Practices
+# ## General Best Practices
 
-1. Use semantic HTML elements (`<nav>`, `<header>`, `<main>`, `<footer>`, etc.)
-2. Ensure sufficient color contrast
-3. Provide clear focus indicators
-4. Test with screen readers when possible
-5. Validate code against accessibility standards
+# 1. Use semantic HTML elements (`<nav>`, `<header>`, `<main>`, `<footer>`, etc.)
+# 2. Ensure sufficient color contrast
+# 3. Provide clear focus indicators
+# 4. Test with screen readers when possible
+# 5. Validate code against accessibility standards
 
-When generating code, prioritize these accessibility features even if they aren't explicitly requested, as they are fundamental to creating inclusive web experiences.
+# When generating code, prioritize these accessibility features even if they aren't explicitly requested, as they are fundamental to creating inclusive web experiences.
 
-"""
+# """
+
+# OTHER_ASSESSIBILITY_FACTORS = """
+# 1. h1 can be followed only by h2 in that order, we cannot have h3 after 
+# """
+
+
+# ACCESSIBILITY_PROMPT_TEMPLATE = """
+# # Web Accessibility Requirements
+
+# When generating HTML, CSS, or JavaScript code, adhere to the following accessibility guidelines based on WCAG principles. These requirements ensure that web content is perceivable, operable, understandable, and robust for all users, including those using assistive technologies.
+
+# ## Perceivable
+
+# ### 1. Images and iframes must have alt attributes
+# - All <img> elements must include descriptive alt attributes.
+# - All <iframe> elements must include title attributes to provide context.
+
+# **Incorrect:**
+# ```html
+# <iframe src="https://www.w3schools.com"></iframe>
+# <img src="logo.png">
+# ```
+# **Correct:**
+# ```html
+# <iframe src="https://www.w3schools.com" title="W3Schools Free Online Web Tutorials"></iframe>
+# <img src="logo.png" alt="Beauty Products Logo">
+# ```
+
+# ### 2. Form elements must be properly labeled
+# - All form controls (buttons, inputs, checkboxes, radio buttons, file inputs, select elements) must have associated text labels.
+# - Labels must contain descriptive text content.
+# - Use <label> elements properly associated with form controls.
+
+# **Incorrect:**
+# ```html
+# <input type="text" id="name" name="name" placeholder="Your name">
+# <input type="checkbox" id="vehicle2" name="vehicle2" value="Car">
+# ```
+# **Correct:**
+# ```html
+# <label for="name">Name:</label>
+# <input type="text" id="name" name="name" placeholder="Your name">
+# <label for="vehicle2">I have a car</label>
+# <input type="checkbox" id="vehicle2" name="vehicle2" value="Car">
+# ```
+
+# ### 3. Avoid deprecated formatting elements
+# - Don't use <b>, <i>, or <font> tags.
+# - Use <strong> or <em> for emphasis, or CSS for styling.
+
+# **Incorrect:**
+# ```html
+# <p><b>Important text</b></p>
+# <font size="5">Styled text</font>
+# ```
+# **Correct:**
+# ```html
+# <p><strong>Important text</strong></p>
+# <p>Styled text</p>
+# ```
+
+# ## Operable
+
+# ### 1. Ensure keyboard accessibility
+# - For any element with onmousedown events, include corresponding onkeydown events.
+# - Make all interactive elements keyboard accessible.
+
+# **Incorrect:**
+# ```html
+# <button onmousedown="showMessage()">Click me</button>
+# ```
+# **Correct:**
+# ```html
+# <button onmousedown="showMessage()" onkeydown="showMessage()">Click me</button>
+# ```
+
+# ### 2. Provide proper document structure
+# - Include a non-empty <title> element.
+# - All anchor (<a>) elements must contain text content.
+
+# **Incorrect:**
+# ```html
+# <a href="#"></a>
+# ```
+# **Correct:**
+# ```html
+# <a href="#">Contact</a>
+# ```
+
+# ## Understandable
+
+# ### 1. Specify document language
+# - Include a valid lang attribute on the HTML element.
+# - Use standard language codes (e.g., "en", "es", "fr").
+
+# **Incorrect:**
+# ```html
+# <html>
+# ```
+# **Correct:**
+# ```html
+# <html lang="en">
+# ```
+
+# ## Robust
+
+# ### 1. Ensure valid markup
+# - Use unique ID attributes (no duplicates).
+# - Include complete start and end tags for all elements.
+# - Follow HTML5 standards.
+
+# ## General Best Practices
+
+# 1. Use semantic HTML elements (<nav>, <header>, <main>, <footer>, etc.).
+# 2. Ensure sufficient color contrast.
+# 3. Provide clear focus indicators.
+# 4. Test with screen readers when possible.
+# 5. Validate code against accessibility standards.
+
+# When generating code, prioritize these accessibility features even if they aren't explicitly requested, as they are fundamental to creating inclusive web experiences.
+# """

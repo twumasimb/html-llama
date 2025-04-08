@@ -1,6 +1,5 @@
 # utils.py
 import re
-import re
 import json
 import signal
 import logging
@@ -8,8 +7,7 @@ import requests
 from tqdm import tqdm
 from openai import OpenAI
 from typing import Optional
-from bs4 import BeautifulSoup
-from typing import Dict, List, Tuple
+from transformers import pipeline
 from contextlib import contextmanager
 
 # Configure logging
@@ -76,189 +74,47 @@ def deduplicate_prompts(prompts, batch_size=1000):
                 
     return unique_prompts
 
-# def accessibility_test(html_code):
-#     """
-#     A comprehensive accessibility test that checks for key accessibility attributes.
-#     Returns a score between 0 and 1 where higher values indicate better accessibility.
-#     """
-#     # Track number of checks and passed checks for scoring
-#     total_checks = 0
-#     passed_checks = 0
-    
-#     # Check for ARIA attributes
-#     aria_attrs = re.findall(r'aria-[a-zA-Z]+="[^"]+"', html_code)
-#     has_aria = len(aria_attrs) > 0
-#     total_checks += 1
-#     passed_checks += int(has_aria)
-    
-#     # Check for role attributes
-#     role_attrs = re.findall(r'role="[^"]+"', html_code)
-#     has_roles = len(role_attrs) > 0
-#     total_checks += 1
-#     passed_checks += int(has_roles)
-    
-#     # Check for image alt text
-#     img_tags = re.findall(r'<img[^>]*>', html_code)
-#     if img_tags:
-#         missing_alt = any('alt=' not in img.lower() for img in img_tags)
-#         has_alt = not missing_alt
-#         total_checks += 1
-#         passed_checks += int(has_alt)
-    
-#     # Check for form labels
-#     input_tags = re.findall(r'<input[^>]*>', html_code)
-#     if input_tags:
-#         labels = re.findall(r'<label[^>]*>', html_code)
-#         has_labels = len(labels) > 0
-#         total_checks += 1
-#         passed_checks += int(has_labels)
-    
-#     # Calculate score
-#     score = passed_checks / total_checks if total_checks > 0 else 0.0
-    
-#     return score
-
-def accessibility_test(html_code: str) -> Tuple[float, Dict[str, List[str]]]:
+def accessibility_test(html_code):
     """
-    Comprehensive accessibility test following WCAG principles.
-    Returns a tuple of (score, issues dictionary) where score is between 0 and 1.
+    A comprehensive accessibility test that checks for key accessibility attributes.
+    Returns a score between 0 and 1 where higher values indicate better accessibility.
     """
-    soup = BeautifulSoup(html_code, 'html.parser')
-    issues = {
-        "perceivable": [],
-        "operable": [],
-        "understandable": [],
-        "robust": []
-    }
+    # Track number of checks and passed checks for scoring
     total_checks = 0
     passed_checks = 0
-
-    # Perceivable Checks
-    def check_perceivable():
-        nonlocal total_checks, passed_checks
-        
-        # Check images for alt text
-        images = soup.find_all('img')
+    
+    # Check for ARIA attributes
+    aria_attrs = re.findall(r'aria-[a-zA-Z]+="[^"]+"', html_code)
+    has_aria = len(aria_attrs) > 0
+    total_checks += 1
+    passed_checks += int(has_aria)
+    
+    # Check for role attributes
+    role_attrs = re.findall(r'role="[^"]+"', html_code)
+    has_roles = len(role_attrs) > 0
+    total_checks += 1
+    passed_checks += int(has_roles)
+    
+    # Check for image alt text
+    img_tags = re.findall(r'<img[^>]*>', html_code)
+    if img_tags:
+        missing_alt = any('alt=' not in img.lower() for img in img_tags)
+        has_alt = not missing_alt
         total_checks += 1
-        if all('alt' in img.attrs for img in images):
-            passed_checks += 1
-        else:
-            issues["perceivable"].append("Some images missing alt text")
-
-        # Check iframes for title/alt
-        iframes = soup.find_all('iframe')
+        passed_checks += int(has_alt)
+    
+    # Check for form labels
+    input_tags = re.findall(r'<input[^>]*>', html_code)
+    if input_tags:
+        labels = re.findall(r'<label[^>]*>', html_code)
+        has_labels = len(labels) > 0
         total_checks += 1
-        if all('title' in frame.attrs or 'alt' in frame.attrs for frame in iframes):
-            passed_checks += 1
-        else:
-            issues["perceivable"].append("Some iframes missing title/alt attributes")
-
-        # Check form labels
-        inputs = soup.find_all(['input', 'select', 'textarea'])
-        if inputs:
-            total_checks += 1
-            labeled_inputs = 0
-            for input_elem in inputs:
-                id_attr = input_elem.get('id')
-                if id_attr and soup.find('label', attrs={'for': id_attr}):
-                    labeled_inputs += 1
-                elif input_elem.parent.name == 'label':
-                    labeled_inputs += 1
-            if labeled_inputs == len(inputs):
-                passed_checks += 1
-            else:
-                issues["perceivable"].append("Some form elements missing proper labels")
-
-        # Check for deprecated formatting
-        deprecated_tags = soup.find_all(['b', 'i', 'font'])
-        total_checks += 1
-        if not deprecated_tags:
-            passed_checks += 1
-        else:
-            issues["perceivable"].append("Using deprecated formatting tags")
-
-    # Operable Checks
-    def check_operable():
-        nonlocal total_checks, passed_checks
-        
-        # Check for autoplay media
-        media = soup.find_all(['audio', 'video'])
-        total_checks += 1
-        if not any('autoplay' in elem.attrs for elem in media):
-            passed_checks += 1
-        else:
-            issues["operable"].append("Media elements with autoplay detected")
-
-        # Check mouse events have keyboard equivalents
-        elements_with_mouse = soup.find_all(
-            lambda tag: any(attr for attr in tag.attrs if attr.startswith('onmouse'))
-        )
-        total_checks += 1
-        if all(any(attr.startswith('onkey') for attr in elem.attrs) 
-               for elem in elements_with_mouse):
-            passed_checks += 1
-        else:
-            issues["operable"].append("Mouse events without keyboard equivalents")
-
-        # Check meta refresh
-        meta_refresh = soup.find('meta', attrs={'http-equiv': 'refresh'})
-        total_checks += 1
-        if not meta_refresh:
-            passed_checks += 1
-        else:
-            issues["operable"].append("Automatic page refresh detected")
-
-    # Understandable Checks
-    def check_understandable():
-        nonlocal total_checks, passed_checks
-        
-        # Check document language
-        html_tag = soup.find('html')
-        total_checks += 1
-        if html_tag and 'lang' in html_tag.attrs:
-            passed_checks += 1
-        else:
-            issues["understandable"].append("Missing document language")
-
-        # Check form input purpose
-        inputs = soup.find_all('input')
-        total_checks += 1
-        if all('type' in input_elem.attrs for input_elem in inputs):
-            passed_checks += 1
-        else:
-            issues["understandable"].append("Form inputs missing type attribute")
-
-    # Robust Checks
-    def check_robust():
-        nonlocal total_checks, passed_checks
-        
-        # Check for unique IDs
-        ids = [tag.get('id') for tag in soup.find_all(attrs={'id': True})]
-        total_checks += 1
-        if len(ids) == len(set(ids)):
-            passed_checks += 1
-        else:
-            issues["robust"].append("Duplicate ID attributes found")
-
-        # Check for ARIA roles
-        elements_with_roles = soup.find_all(attrs={'role': True})
-        total_checks += 1
-        valid_roles = {'button', 'link', 'menuitem', 'tab', 'search', 'navigation'}
-        if all(elem.get('role') in valid_roles for elem in elements_with_roles):
-            passed_checks += 1
-        else:
-            issues["robust"].append("Invalid ARIA roles detected")
-
-    # Run all checks
-    check_perceivable()
-    check_operable()
-    check_understandable()
-    check_robust()
-
-    # Calculate final score
+        passed_checks += int(has_labels)
+    
+    # Calculate score
     score = passed_checks / total_checks if total_checks > 0 else 0.0
     
-    return score, issues
+    return score
 
 def llm_generate(prompt: str, model: str, timeout_seconds: int = 600) -> Optional[str]:
     """Generate response using local LLM API via Ollama with timeout"""
@@ -276,6 +132,17 @@ def llm_generate(prompt: str, model: str, timeout_seconds: int = 600) -> Optiona
                     json_response = json.loads(line)
                     if 'response' in json_response:
                         full_response += json_response['response']
+            
+
+            # Use external API
+            # full_response = get_completion(prompt)
+
+            # Extract response after </think> tag if present
+            if '</think>' in full_response:
+                full_response = full_response.split('</think>')[-1].strip()
+                # Split by newlines and take everything after the first empty line
+                if '\n\n' in full_response:
+                    full_response = full_response.split('\n\n', 1)[1].strip()
                 
             return full_response
             
@@ -309,95 +176,65 @@ def get_completion(prompt_template: str) -> str:
             result += chunk.choices[0].delta.content
     return result
 
+import random
+import json
+from datasets import Dataset, DatasetDict
+from typing import List, Dict, Union
 
-
-
-######## New code, check it out
-from bs4 import BeautifulSoup
-import re
-
-class AccessibilityInspector:
-    def __init__(self, html_code):
-        self.html_code = html_code
-        self.score = 100
-        self.max_score = 100
-
-    # Method to check for perceivable content (WCAG 2.2 P)
-    def check_perceivable_content(self):
-        soup = BeautifulSoup(self.html_code, 'html.parser')
-        images = soup.find_all('img')
-        for image in images:
-            if not image.get('alt'):
-                self.score -= 5
-                print(f"Image without alt text: {image.get('src')}")
-
-        headings = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
-        for heading in headings:
-            if not heading.text.strip():
-                self.score -= 5
-                print(f"Empty heading: {heading.name}")
-
-    # Method to check for operable content (WCAG 2.2 O)
-    def check_operable_content(self):
-        soup = BeautifulSoup(self.html_code, 'html.parser')
-        buttons = soup.find_all('button')
-        for button in buttons:
-            if not button.get('aria-label') and not button.text.strip():
-                self.score -= 5
-                print(f"Button without label or text: {button}")
-
-        links = soup.find_all('a')
-        for link in links:
-            if not link.get('href'):
-                self.score -= 5
-                print(f"Link without href: {link}")
-
-    # Method to check for ARIA roles and states
-    def check_aria(self):
-        soup = BeautifulSoup(self.html_code, 'html.parser')
-        elements_with_roles = soup.find_all(lambda tag: tag.has_attr('role'))
-        for element in elements_with_roles:
-            role = element.get('role')
-            if role not in ['button', 'link', 'menu', 'menuitem', 'progressbar']:
-                self.score -= 5
-                print(f"Unknown ARIA role: {role} on {element.name}")
-
-        elements_with_states = soup.find_all(lambda tag: tag.has_attr('aria-expanded') or tag.has_attr('aria-checked'))
-        for element in elements_with_states:
-            state = element.get('aria-expanded') or element.get('aria-checked')
-            if state not in ['true', 'false']:
-                self.score -= 5
-                print(f"Invalid ARIA state: {state} on {element.name}")
-
-    # Method to calculate the final score
-    def calculate_score(self):
-        self.score = max(self.score, 0)
-        self.score = min(self.score, self.max_score)
-        return self.score
-
-    # Main method to run the inspector
-    def run_inspector(self):
-        self.check_perceivable_content()
-        self.check_operable_content()
-        self.check_aria()
-        return self.calculate_score()
-
-# # Example usage
-# html_code = """
-# <html>
-#   <body>
-#     <h1>Welcome to our website</h1>
-#     <img src="image.jpg" alt="An image on our website">
-#     <button aria-label="Click me">Click me</button>
-#     <a href="#">Link to somewhere</a>
-#     <div role="menu">
-#       <div role="menuitem">Menu item 1</div>
-#       <div role="menuitem">Menu item 2</div>
-#     </div>
-#   </body>
-# </html>
-# """
-
-# inspector = AccessibilityInspector(html_code)
-# score = inspector.run_inspector()
-# print(f"Accessibility score: {score}")
+def create_and_split_dataset(
+    data: List[Dict[str, str]], 
+    train_ratio: float = 0.8, 
+    seed: int = 42,
+    output_dir: str = 'dataset',
+    save_jsonl: bool = True
+) -> DatasetDict:
+    """
+    Create and split a dataset into train and test sets.
+    
+    Args:
+        data: List of dictionaries containing 'prompt' and 'response' keys
+        train_ratio: Ratio of data to use for training (default: 0.8)
+        seed: Random seed for reproducibility (default: 42)
+        output_dir: Directory to save the final dataset (default: 'dataset')
+        save_jsonl: Whether to save train/test splits as JSONL files (default: True)
+    
+    Returns:
+        DatasetDict containing train and test datasets
+    """
+    # Create a copy of the data to avoid modifying the original
+    combined_data = [
+        {"prompt": item["prompt"], "code": item["code"]} for item in data
+    ]
+    
+    # Shuffle the data
+    random.seed(seed)
+    random.shuffle(combined_data)
+    
+    # Split the data
+    split_idx = int(len(combined_data) * train_ratio)
+    train_data = combined_data[:split_idx]
+    test_data = combined_data[split_idx:]
+    
+    # Save to JSONL files if requested
+    if save_jsonl:
+        for split_name, split_data in [("train", train_data), ("validation", test_data)]:
+            with open(f'{split_name}.jsonl', 'w') as f:
+                for item in split_data:
+                    json.dump(item, f)
+                    f.write('\n')
+            print(f"Created {split_name}.jsonl with {len(split_data)} examples")
+    
+    # Create dataset dictionary
+    dataset = DatasetDict({
+        'train': Dataset.from_list(train_data),
+        'test': Dataset.from_list(test_data)
+    })
+    
+    # Print dataset statistics
+    print(f"Train dataset size: {len(dataset['train'])}")
+    print(f"Test dataset size: {len(dataset['validation'])}")
+    
+    # Save the dataset
+    dataset.save_to_disk(output_dir)
+    
+    return dataset

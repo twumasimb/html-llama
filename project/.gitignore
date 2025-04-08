@@ -9,3 +9,8 @@
 /prompt_preprocessing
 /embeddings
 /__pycache__
+/codellama-a11y
+/codellama-a11y-merged-3600
+/logs
+/results
+/test.html

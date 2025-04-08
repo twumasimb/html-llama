@@ -127,84 +127,97 @@ def clean_text(text):
     return cleaned
 
 def load_prompts(filepath="./prompts.json"):
-    """Load and clean prompts from the JSON file."""
-
+    """
+    Load prompts from a JSON file.
+    
+    Args:
+        filepath: Path to the JSON file containing prompts
+        
+    Returns:
+        List of dictionaries containing 'prompt' key
+    """
     cleaned_filepath = "cleaned_prompts.json"
     
     if os.path.exists(cleaned_filepath):
         print(f"Loading existing cleaned prompts from {cleaned_filepath}...")
         with open(cleaned_filepath, 'r', encoding='utf-8') as f:
-            cleaned_prompts = json.load(f)
-        
-        return cleaned_prompts
+            return json.load(f)
 
     try:
         with open(filepath, 'r', encoding='utf-8') as file:
-            prompts = json.load(file)
+            data = json.load(file)
             
-        # Clean each prompt
-        cleaned_prompts = [clean_text(prompt) for prompt in prompts]
+        # Handle different input formats
+        if isinstance(data, list):
+            # If data is already a list of dictionaries with 'prompt' key
+            if all(isinstance(item, dict) and 'prompt' in item for item in data):
+                cleaned_prompts = data
+            else:
+                # Convert simple strings to dictionaries with 'prompt' key
+                cleaned_prompts = [{'prompt': clean_text(str(item))} for item in data]
+        else:
+            raise ValueError("Expected JSON file to contain a list of items")
+            
         print(f"Loaded and cleaned {len(cleaned_prompts)} prompts")
         
         # Save cleaned prompts
         with open(cleaned_filepath, 'w', encoding='utf-8') as f:
             json.dump(cleaned_prompts, f, indent=2)
-
+            
         return cleaned_prompts
 
     except Exception as e:
         print(f"Error loading prompts: {str(e)}")
-        return [], []
+        return []
 
-def compute_embeddings(embedding_model="thenlper/gte-large", save_dir="./embeddings", prompts=None):
+def compute_embeddings(embedding_model="thenlper/gte-large", save_dir="./embeddings", prompts=None, filename="embeddings.npy"):
     """
-    Compute embeddings for either a dataset or a list of prompts.
+    Compute embeddings for a list of prompts.
     
     Args:
-        dataset: Optional dataset with instruction/input/output fields
         embedding_model: Model name to use for embeddings
         save_dir: Directory to save embeddings
-        prompts: Optional list of prompt strings to embed
+        prompts: List of dictionaries containing 'prompt' key
+        filename: Name of the file to save/load embeddings
     
     Returns:
         numpy array of embeddings
     """
-    
-    # Use a different filename when embedding raw prompts
-    filename = "prompt_embeddings.npy" if prompts is not None else "embeddings.npy"
     filepath = os.path.join(save_dir, filename)
     
     if os.path.exists(filepath):
         print(f"Loading existing embeddings from {filepath}...")
         return np.load(filepath)
     
+    if not prompts:
+        raise ValueError("No prompts provided")
+    
     os.makedirs(save_dir, exist_ok=True)
     print(f"Loading embedding model: {embedding_model}")
     model = SentenceTransformer(embedding_model)
 
     embeddings = []
+    batch_size = 32
     
-    if prompts is not None:
-        # Process a list of prompt strings
-        batch_size = 32
-        num_batches = (len(prompts) + batch_size - 1) // batch_size
-        
-        pbar = tqdm(total=len(prompts), desc="Computing prompt embeddings")
-        for i in range(num_batches):
-            start = i * batch_size
-            end = min(start + batch_size, len(prompts))
-            batch_prompts = prompts[start:end]
-            
-            batch_embeddings = model.encode(batch_prompts, batch_size=batch_size, device="cuda:0" if torch.cuda.is_available() else "cpu")
-            embeddings.extend(batch_embeddings)
-            pbar.update(end - start)
-        pbar.close()
-
+    # Convert prompts to tensor-friendly format
+    texts_to_embed = [str(item['prompt']).strip() for item in prompts]
+    
+    # Process in batches
+    for i in tqdm(range(0, len(texts_to_embed), batch_size), desc="Computing embeddings"):
+        batch = texts_to_embed[i:i+batch_size]
+        batch_embeddings = model.encode(
+            batch,
+            batch_size=batch_size,
+            device="cuda:0" if torch.cuda.is_available() else "cpu",
+            show_progress_bar=False
+        )
+        embeddings.extend(batch_embeddings)
+    
     embeddings = np.array(embeddings)
     np.save(filepath, embeddings)
     return embeddings
 
-def select_representative_prompts(prompts_file="./prompts.json", top_k=100, kernel_type='cosine', save_path="./dedup_prompts.json"):
+def select_representative_prompts(prompts_file="./prompts.json", top_k=100, kernel_type='cosine', save_path="./dedup_prompts.json", embed_filename="embeddings.npy"):
     """
     Select top_k representative prompts using facility location.
     
@@ -225,7 +238,7 @@ def select_representative_prompts(prompts_file="./prompts.json", top_k=100, kern
     
     # Compute embeddings for all prompts
     print(f"Computing embeddings for {len(cleaned_prompts)} prompts...")
-    embeddings = compute_embeddings(prompts=cleaned_prompts)
+    embeddings = compute_embeddings(prompts=cleaned_prompts, filename=embed_filename)
     
     # Create facility location instance
     print("Creating facility location instance...")
@@ -255,6 +268,7 @@ def main():
     parser.add_argument("--top-k", type=int, default=100, help="Number of prompts to select")
     parser.add_argument("--kernel", type=str, default="cosine", choices=["cosine", "rbf", "linear"], help="Similarity kernel type")
     parser.add_argument("--output", type=str, default="./dedup_prompts.json", help="Output file path")
+    parser.add_argument("--embed-filename", type=str, default="./embedding.npy", help="Filename for embeddings")
     
     args = parser.parse_args()
     
@@ -262,7 +276,8 @@ def main():
         prompts_file=args.prompts_file,
         top_k=args.top_k,
         kernel_type=args.kernel,
-        save_path=args.output
+        save_path=args.output,
+        embed_filename=args.embed_filename
     )
 
 if __name__ == "__main__":

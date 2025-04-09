@@ -403,118 +403,118 @@ webpage_purposes = [
 # """
 
 
-# ACCESSIBILITY_PROMPT_TEMPLATE = """
-# # Web Accessibility Requirements
+ACCESSIBILITY_PROMPT_TEMPLATE = """
+    # Web Accessibility Requirements
 
-# When generating HTML, CSS, or JavaScript code, adhere to the following accessibility guidelines based on WCAG principles. These requirements ensure that web content is perceivable, operable, understandable, and robust for all users, including those using assistive technologies.
+    When generating HTML, CSS, or JavaScript code, adhere to the following accessibility guidelines based on WCAG principles. These requirements ensure that web content is perceivable, operable, understandable, and robust for all users, including those using assistive technologies.
 
-# ## Perceivable
+    ## Perceivable
 
-# ### 1. Images and iframes must have alt attributes
-# - All <img> elements must include descriptive alt attributes.
-# - All <iframe> elements must include title attributes to provide context.
+    ### 1. Images and iframes must have alt attributes
+    - All <img> elements must include descriptive alt attributes.
+    - All <iframe> elements must include title attributes to provide context.
 
-# **Incorrect:**
-# ```html
-# <iframe src="https://www.w3schools.com"></iframe>
-# <img src="logo.png">
-# ```
-# **Correct:**
-# ```html
-# <iframe src="https://www.w3schools.com" title="W3Schools Free Online Web Tutorials"></iframe>
-# <img src="logo.png" alt="Beauty Products Logo">
-# ```
+    **Incorrect:**
+    ```html
+    <iframe src="https://www.w3schools.com"></iframe>
+    <img src="logo.png">
+    ```
+    **Correct:**
+    ```html
+    <iframe src="https://www.w3schools.com" title="W3Schools Free Online Web Tutorials"></iframe>
+    <img src="logo.png" alt="Beauty Products Logo">
+    ```
 
-# ### 2. Form elements must be properly labeled
-# - All form controls (buttons, inputs, checkboxes, radio buttons, file inputs, select elements) must have associated text labels.
-# - Labels must contain descriptive text content.
-# - Use <label> elements properly associated with form controls.
+    ### 2. Form elements must be properly labeled
+    - All form controls (buttons, inputs, checkboxes, radio buttons, file inputs, select elements) must have associated text labels.
+    - Labels must contain descriptive text content.
+    - Use <label> elements properly associated with form controls.
 
-# **Incorrect:**
-# ```html
-# <input type="text" id="name" name="name" placeholder="Your name">
-# <input type="checkbox" id="vehicle2" name="vehicle2" value="Car">
-# ```
-# **Correct:**
-# ```html
-# <label for="name">Name:</label>
-# <input type="text" id="name" name="name" placeholder="Your name">
-# <label for="vehicle2">I have a car</label>
-# <input type="checkbox" id="vehicle2" name="vehicle2" value="Car">
-# ```
+    **Incorrect:**
+    ```html
+    <input type="text" id="name" name="name" placeholder="Your name">
+    <input type="checkbox" id="vehicle2" name="vehicle2" value="Car">
+    ```
+    **Correct:**
+    ```html
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" placeholder="Your name">
+    <label for="vehicle2">I have a car</label>
+    <input type="checkbox" id="vehicle2" name="vehicle2" value="Car">
+    ```
 
-# ### 3. Avoid deprecated formatting elements
-# - Don't use <b>, <i>, or <font> tags.
-# - Use <strong> or <em> for emphasis, or CSS for styling.
+    ### 3. Avoid deprecated formatting elements
+    - Don't use <b>, <i>, or <font> tags.
+    - Use <strong> or <em> for emphasis, or CSS for styling.
 
-# **Incorrect:**
-# ```html
-# <p><b>Important text</b></p>
-# <font size="5">Styled text</font>
-# ```
-# **Correct:**
-# ```html
-# <p><strong>Important text</strong></p>
-# <p>Styled text</p>
-# ```
+    **Incorrect:**
+    ```html
+    <p><b>Important text</b></p>
+    <font size="5">Styled text</font>
+    ```
+    **Correct:**
+    ```html
+    <p><strong>Important text</strong></p>
+    <p>Styled text</p>
+    ```
 
-# ## Operable
+    ## Operable
 
-# ### 1. Ensure keyboard accessibility
-# - For any element with onmousedown events, include corresponding onkeydown events.
-# - Make all interactive elements keyboard accessible.
+    ### 1. Ensure keyboard accessibility
+    - For any element with onmousedown events, include corresponding onkeydown events.
+    - Make all interactive elements keyboard accessible.
 
-# **Incorrect:**
-# ```html
-# <button onmousedown="showMessage()">Click me</button>
-# ```
-# **Correct:**
-# ```html
-# <button onmousedown="showMessage()" onkeydown="showMessage()">Click me</button>
-# ```
+    **Incorrect:**
+    ```html
+    <button onmousedown="showMessage()">Click me</button>
+    ```
+    **Correct:**
+    ```html
+    <button onmousedown="showMessage()" onkeydown="showMessage()">Click me</button>
+    ```
 
-# ### 2. Provide proper document structure
-# - Include a non-empty <title> element.
-# - All anchor (<a>) elements must contain text content.
+    ### 2. Provide proper document structure
+    - Include a non-empty <title> element.
+    - All anchor (<a>) elements must contain text content.
 
-# **Incorrect:**
-# ```html
-# <a href="#"></a>
-# ```
-# **Correct:**
-# ```html
-# <a href="#">Contact</a>
-# ```
+    **Incorrect:**
+    ```html
+    <a href="#"></a>
+    ```
+    **Correct:**
+    ```html
+    <a href="#">Contact</a>
+    ```
 
-# ## Understandable
+    ## Understandable
 
-# ### 1. Specify document language
-# - Include a valid lang attribute on the HTML element.
-# - Use standard language codes (e.g., "en", "es", "fr").
+    ### 1. Specify document language
+    - Include a valid lang attribute on the HTML element.
+    - Use standard language codes (e.g., "en", "es", "fr").
 
-# **Incorrect:**
-# ```html
-# <html>
-# ```
-# **Correct:**
-# ```html
-# <html lang="en">
-# ```
+    **Incorrect:**
+    ```html
+    <html>
+    ```
+    **Correct:**
+    ```html
+    <html lang="en">
+    ```
 
-# ## Robust
+    ## Robust
 
-# ### 1. Ensure valid markup
-# - Use unique ID attributes (no duplicates).
-# - Include complete start and end tags for all elements.
-# - Follow HTML5 standards.
+    ### 1. Ensure valid markup
+    - Use unique ID attributes (no duplicates).
+    - Include complete start and end tags for all elements.
+    - Follow HTML5 standards.
 
-# ## General Best Practices
+    ## General Best Practices
 
-# 1. Use semantic HTML elements (<nav>, <header>, <main>, <footer>, etc.).
-# 2. Ensure sufficient color contrast.
-# 3. Provide clear focus indicators.
-# 4. Test with screen readers when possible.
-# 5. Validate code against accessibility standards.
+    1. Use semantic HTML elements (<nav>, <header>, <main>, <footer>, etc.).
+    2. Ensure sufficient color contrast. This is very important!!!.
+    3. Provide clear focus indicators.
+    4. Test with screen readers when possible.
+    5. Validate code against accessibility standards.
 
-# When generating code, prioritize these accessibility features even if they aren't explicitly requested, as they are fundamental to creating inclusive web experiences.
-# """
+    When generating code, prioritize these accessibility features even if they aren't explicitly requested, as they are fundamental to creating inclusive web experiences.
+"""

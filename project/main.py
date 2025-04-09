@@ -56,29 +56,29 @@ def main():
     # run_deduplicate_prompts(args.prompts_file, args.dedup_file)
     
     # Step 3: Generate webpages for each deduplicated prompt.
-    # logging.info("Generating webpages...")
-    # run_generate_webpages(args.dedup_file, args.webpages_file, args.device)
+    logging.info("Generating webpages...")
+    run_generate_webpages(args.dedup_file, args.webpages_file, args.device)
     
-    # Step 4: Select the best candidate with progress bar
-    logging.info("Selecting best candidate that passes accessibility tests...")
-    webpages_data = load_json(args.webpages_file)
+    # # Step 4: Select the best candidate with progress bar
+    # logging.info("Selecting best candidate that passes accessibility tests...")
+    # webpages_data = load_json(args.webpages_file)
 
-    # Initialize the output file with an empty array if it doesn't exist
-    if not os.path.exists(args.final_dataset):
-        with open(args.final_dataset, 'w') as f:
-            json.dump([], f)
+    # # Initialize the output file with an empty array if it doesn't exist
+    # if not os.path.exists(args.final_dataset):
+    #     with open(args.final_dataset, 'w') as f:
+    #         json.dump([], f)
 
-    for entry in tqdm(webpages_data, desc="Processing candidates"):
-        score, _ = accessibility_test(entry["code"])
+    # for entry in tqdm(webpages_data, desc="Processing candidates"):
+    #     score, _ = accessibility_test(entry["code"])
 
-        if score >= args.accessibility_threshold:       
-            with open(args.final_dataset, 'r') as f:
-                current_results = json.load(f)
+    #     if score >= args.accessibility_threshold:       
+    #         with open(args.final_dataset, 'r') as f:
+    #             current_results = json.load(f)
         
-            current_results.append(entry)
+    #         current_results.append(entry)
         
-            with open(args.final_dataset, 'w') as f:
-                json.dump(current_results, f, indent=4)
+    #         with open(args.final_dataset, 'w') as f:
+    #             json.dump(current_results, f, indent=4)
     
 if __name__ == "__main__":
     main()

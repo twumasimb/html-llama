@@ -17,8 +17,8 @@ def generate_webpages(prompts, output_file):
     results = []
     for idx, prompt in enumerate(tqdm(prompts, desc="Generating webpages")):
         solution_prompt = f"Generate accessible webpage HTML code for the following prompt:\n{prompt} and the following accessibility prompt:\n{ACCESSIBILITY_PROMPT_TEMPLATE}"
-        candidate = llm_generate(solution_prompt, model="deepseek-r1:14b")
-        # print(candidate) #For debugging
+        candidate = llm_generate(solution_prompt, model="deepseek-r1:32b")
+        print(candidate) #For debugging
         if candidate is not None:
             # Find the code created
             code_pattern = r"```(?:html|)\n?(.*?)```"

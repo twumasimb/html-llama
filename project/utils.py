@@ -1,13 +1,12 @@
 # utils.py
-import re
 import json
-import signal
+import re
 import logging
-import requests
-from tqdm import tqdm
-from openai import OpenAI
-from typing import Optional
 from transformers import pipeline
+from tqdm import tqdm
+import requests
+import signal
+from typing import Optional
 from contextlib import contextmanager
 
 # Configure logging
@@ -46,75 +45,21 @@ def load_json(filepath):
     with open(filepath, "r") as f:
         return json.load(f)
 
-def deduplicate_prompts(prompts, batch_size=1000):
-    """Remove duplicate prompts using a memory-efficient approach.
-    
-    Args:
-        prompts: List of prompts to deduplicate
-        batch_size: Number of prompts to process at once
-        
-    Returns:
-        List of unique prompts
-    """
-    seen = set()
-    unique_prompts = []
-    
-    # Process in batches to reduce memory usage
-    for i in range(0, len(prompts), batch_size):
-        batch = prompts[i:i+batch_size]
-        
-        for prompt in batch:
-            # If prompts are dictionaries/complex objects, use a hashable representation
-            # For example, if prompt is a dict: prompt_hash = str(sorted(prompt.items()))
-            prompt_hash = prompt
-            
-            if prompt_hash not in seen:
-                seen.add(prompt_hash)
-                unique_prompts.append(prompt)
-                
+def deduplicate_prompts(prompts):
+    """Remove duplicate prompts."""
+    unique_prompts = list(set(prompts))
     return unique_prompts
 
 def accessibility_test(html_code):
     """
-    A comprehensive accessibility test that checks for key accessibility attributes.
-    Returns a score between 0 and 1 where higher values indicate better accessibility.
+    A simple accessibility test that checks for key attributes.
+    In a production scenario, use an accessibility testing tool.
+    Returns True if both an aria-* attribute and a role attribute are found.
     """
-    # Track number of checks and passed checks for scoring
-    total_checks = 0
-    passed_checks = 0
-    
-    # Check for ARIA attributes
-    aria_attrs = re.findall(r'aria-[a-zA-Z]+="[^"]+"', html_code)
-    has_aria = len(aria_attrs) > 0
-    total_checks += 1
-    passed_checks += int(has_aria)
-    
-    # Check for role attributes
-    role_attrs = re.findall(r'role="[^"]+"', html_code)
-    has_roles = len(role_attrs) > 0
-    total_checks += 1
-    passed_checks += int(has_roles)
-    
-    # Check for image alt text
-    img_tags = re.findall(r'<img[^>]*>', html_code)
-    if img_tags:
-        missing_alt = any('alt=' not in img.lower() for img in img_tags)
-        has_alt = not missing_alt
-        total_checks += 1
-        passed_checks += int(has_alt)
-    
-    # Check for form labels
-    input_tags = re.findall(r'<input[^>]*>', html_code)
-    if input_tags:
-        labels = re.findall(r'<label[^>]*>', html_code)
-        has_labels = len(labels) > 0
-        total_checks += 1
-        passed_checks += int(has_labels)
-    
-    # Calculate score
-    score = passed_checks / total_checks if total_checks > 0 else 0.0
-    
-    return score
+    aria_check = re.search(r'aria-[a-zA-Z]+=', html_code) is not None
+    role_check = re.search(r'role="[^"]+"', html_code) is not None
+    return aria_check and role_check
+
 
 def llm_generate(prompt: str, model: str, timeout_seconds: int = 600) -> Optional[str]:
     """Generate response using local LLM API via Ollama with timeout"""
@@ -133,16 +78,12 @@ def llm_generate(prompt: str, model: str, timeout_seconds: int = 600) -> Optiona
                     if 'response' in json_response:
                         full_response += json_response['response']
             
-
-            # Use external API
-            # full_response = get_completion(prompt)
-
-            # Extract response after </think> tag if present
-            if '</think>' in full_response:
-                full_response = full_response.split('</think>')[-1].strip()
-                # Split by newlines and take everything after the first empty line
-                if '\n\n' in full_response:
-                    full_response = full_response.split('\n\n', 1)[1].strip()
+            # # Extract response after </think> tag if present
+            # if '</think>' in full_response:
+            #     full_response = full_response.split('</think>')[-1].strip()
+            #     # Split by newlines and take everything after the first empty line
+            #     if '\n\n' in full_response:
+            #         full_response = full_response.split('\n\n', 1)[1].strip()
                 
             return full_response
             
@@ -152,89 +93,67 @@ def llm_generate(prompt: str, model: str, timeout_seconds: int = 600) -> Optiona
     except Exception as e:
         logging.error(f"Error generating with CodeLlama: {str(e)}")
         return None
-    
 
-def get_completion(prompt_template: str) -> str:
+# def llm_generate(prompt: str, model: str, timeout_seconds: int = 60) -> Optional[str]:
+#     """Generate response using Hyperbolic API with timeout"""
+#     url = "https://api.hyperbolic.xyz/v1/chat/completions"
+#     headers = {
+#         "Content-Type": "application/json",
+#         "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyZXNlYXJjaHNlcnZpY2VzMzAxQGdtYWlsLmNvbSIsImlhdCI6MTczODg1ODc5MX0.Delzv2NEwLoC4rVtbymBhWQNwahQ0yQPgjWyZ0J0rbE"
+#     }
+#     data = {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": prompt
+#             }
+#         ],
+#         "model": model or "deepseek-ai/DeepSeek-R1",  # Use provided model or default to DeepSeek-R1
+#         "max_tokens": 10000,
+#         "temperature": 0.1,
+#         "top_p": 0.9
+#     }
     
-    client = OpenAI(
-      base_url="https://integrate.api.nvidia.com/v1",
-      api_key="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"
-    )
-
-    completion = client.chat.completions.create(
-      model="deepseek-ai/deepseek-r1-distill-qwen-32b",
-      messages=[{"role": "user", "content": f"{prompt_template}"}],
-      temperature=0.6,
-      top_p=0.7,
-      max_tokens=4096,
-      stream=True
-    )
-
-    result = ""
-    for chunk in completion:
-        if chunk.choices[0].delta.content is not None:
-            result += chunk.choices[0].delta.content
-    return result
-
-import random
-import json
-from datasets import Dataset, DatasetDict
-from typing import List, Dict, Union
-
-def create_and_split_dataset(
-    data: List[Dict[str, str]], 
-    train_ratio: float = 0.8, 
-    seed: int = 42,
-    output_dir: str = 'dataset',
-    save_jsonl: bool = True
-) -> DatasetDict:
-    """
-    Create and split a dataset into train and test sets.
-    
-    Args:
-        data: List of dictionaries containing 'prompt' and 'response' keys
-        train_ratio: Ratio of data to use for training (default: 0.8)
-        seed: Random seed for reproducibility (default: 42)
-        output_dir: Directory to save the final dataset (default: 'dataset')
-        save_jsonl: Whether to save train/test splits as JSONL files (default: True)
-    
-    Returns:
-        DatasetDict containing train and test datasets
-    """
-    # Create a copy of the data to avoid modifying the original
-    combined_data = [
-        {"prompt": item["prompt"], "code": item["code"]} for item in data
-    ]
-    
-    # Shuffle the data
-    random.seed(seed)
-    random.shuffle(combined_data)
-    
-    # Split the data
-    split_idx = int(len(combined_data) * train_ratio)
-    train_data = combined_data[:split_idx]
-    test_data = combined_data[split_idx:]
-    
-    # Save to JSONL files if requested
-    if save_jsonl:
-        for split_name, split_data in [("train", train_data), ("validation", test_data)]:
-            with open(f'{split_name}.jsonl', 'w') as f:
-                for item in split_data:
-                    json.dump(item, f)
-                    f.write('\n')
-            print(f"Created {split_name}.jsonl with {len(split_data)} examples")
-    
-    # Create dataset dictionary
-    dataset = DatasetDict({
-        'train': Dataset.from_list(train_data),
-        'test': Dataset.from_list(test_data)
-    })
-    
-    # Print dataset statistics
-    print(f"Train dataset size: {len(dataset['train'])}")
-    print(f"Test dataset size: {len(dataset['validation'])}")
-    
-    # Save the dataset
-    dataset.save_to_disk(output_dir)
-    
-    return dataset
+#     try:
+#         with timeout(timeout_seconds):
+#             logging.info(f"Sending request to Hyperbolic API with model: {data['model']}")
+#             response = requests.post(url, headers=headers, json=data)
+            
+#             # Log the raw response for debugging
+#             logging.debug(f"Raw API response: {response.text}")
+            
+#             # Check if response is valid JSON
+#             try:
+#                 response_json = response.json()
+#             except json.JSONDecodeError as e:
+#                 logging.error(f"Failed to parse API response as JSON: {str(e)}")
+#                 logging.error(f"Response status code: {response.status_code}")
+#                 logging.error(f"Response content: {response.text}")
+#                 return None
+            
+#             # Check if the response contains the expected data
+#             if response.status_code == 200 and 'choices' in response_json and response_json['choices']:
+#                 if 'message' in response_json['choices'][0] and 'content' in response_json['choices'][0]['message']:
+#                     return response_json['choices'][0]['message']['content']
+#                 else:
+#                     logging.error(f"Unexpected API response structure: {response_json}")
+#                     return None
+#             else:
+#                 error_message = "Unknown error"
+#                 if 'error' in response_json:
+#                     if isinstance(response_json['error'], dict) and 'message' in response_json['error']:
+#                         error_message = response_json['error']['message']
+#                     elif isinstance(response_json['error'], str):
+#                         error_message = response_json['error']
+                
+#                 logging.error(f"API error (status {response.status_code}): {error_message}")
+#                 logging.error(f"Full response: {response_json}")
+#                 return None
+                
+#     except TimeoutException:
+#         logging.error(f"LLM generation timed out after {timeout_seconds} seconds")
+#         return None
+#     except Exception as e:
+#         logging.error(f"Error generating with Hyperbolic API: {str(e)}")
+#         logging.exception("Stack trace:")  # This will log the full stack trace
+#         return None

@@ -128,20 +128,21 @@ def clean_text(text):
 
 def load_prompts(filepath="./prompts.json"):
     """
-    Load prompts from a JSON file.
+    Load prompts from a JSON file and return a list of strings.
     
     Args:
         filepath: Path to the JSON file containing prompts
         
     Returns:
-        List of dictionaries containing 'prompt' key
+        List of strings containing the prompts
     """
     cleaned_filepath = "cleaned_prompts.json"
     
     if os.path.exists(cleaned_filepath):
         print(f"Loading existing cleaned prompts from {cleaned_filepath}...")
         with open(cleaned_filepath, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            cleaned_prompts = json.load(f)
+            return [item['prompt'] for item in cleaned_prompts]
 
     try:
         with open(filepath, 'r', encoding='utf-8') as file:
@@ -163,14 +164,15 @@ def load_prompts(filepath="./prompts.json"):
         # Save cleaned prompts
         with open(cleaned_filepath, 'w', encoding='utf-8') as f:
             json.dump(cleaned_prompts, f, indent=2)
-            
-        return cleaned_prompts
+        
+        # Return a list of strings
+        return [item['prompt'] for item in cleaned_prompts]
 
     except Exception as e:
         print(f"Error loading prompts: {str(e)}")
         return []
 
-def compute_embeddings(embedding_model="thenlper/gte-large", save_dir="./embeddings", prompts=None, filename="embeddings.npy"):
+def compute_embeddings(embedding_model="thenlper/gte-large", save_dir="./new_embeddings", prompts=None, filename="embeddings.npy"):
     """
     Compute embeddings for a list of prompts.
     

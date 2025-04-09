@@ -3,10 +3,10 @@
 /final_dataset.json
 /webpages.json
 /files
-/generated_dataset
-/final_dataset
+/generated_dataset_old
+/final_dataset_old_data
 /finetune_model
-/prompt_preprocessing
+/prompt_preprocessing_old
 /embeddings
 /__pycache__
 /codellama-a11y
@@ -14,3 +14,6 @@
 /logs
 /results
 /test.html
+/cleaned_prompts
+/generated_dataset
+/new_embeddings

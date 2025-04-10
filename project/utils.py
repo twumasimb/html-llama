@@ -1,12 +1,10 @@
 # utils.py
-import re
 import json
-import signal
+import re
 import random
 import logging
-import requests
+from transformers import pipeline
 from tqdm import tqdm
-from openai import OpenAI
 from typing import Optional
 from transformers import pipeline
 from typing import List, Dict, Union
@@ -49,75 +47,21 @@ def load_json(filepath):
     with open(filepath, "r") as f:
         return json.load(f)
 
-def deduplicate_prompts(prompts, batch_size=1000):
-    """Remove duplicate prompts using a memory-efficient approach.
-    
-    Args:
-        prompts: List of prompts to deduplicate
-        batch_size: Number of prompts to process at once
-        
-    Returns:
-        List of unique prompts
-    """
-    seen = set()
-    unique_prompts = []
-    
-    # Process in batches to reduce memory usage
-    for i in range(0, len(prompts), batch_size):
-        batch = prompts[i:i+batch_size]
-        
-        for prompt in batch:
-            # If prompts are dictionaries/complex objects, use a hashable representation
-            # For example, if prompt is a dict: prompt_hash = str(sorted(prompt.items()))
-            prompt_hash = prompt
-            
-            if prompt_hash not in seen:
-                seen.add(prompt_hash)
-                unique_prompts.append(prompt)
-                
+def deduplicate_prompts(prompts):
+    """Remove duplicate prompts."""
+    unique_prompts = list(set(prompts))
     return unique_prompts
 
 def accessibility_test(html_code):
     """
-    A comprehensive accessibility test that checks for key accessibility attributes.
-    Returns a score between 0 and 1 where higher values indicate better accessibility.
+    A simple accessibility test that checks for key attributes.
+    In a production scenario, use an accessibility testing tool.
+    Returns True if both an aria-* attribute and a role attribute are found.
     """
-    # Track number of checks and passed checks for scoring
-    total_checks = 0
-    passed_checks = 0
-    
-    # Check for ARIA attributes
-    aria_attrs = re.findall(r'aria-[a-zA-Z]+="[^"]+"', html_code)
-    has_aria = len(aria_attrs) > 0
-    total_checks += 1
-    passed_checks += int(has_aria)
-    
-    # Check for role attributes
-    role_attrs = re.findall(r'role="[^"]+"', html_code)
-    has_roles = len(role_attrs) > 0
-    total_checks += 1
-    passed_checks += int(has_roles)
-    
-    # Check for image alt text
-    img_tags = re.findall(r'<img[^>]*>', html_code)
-    if img_tags:
-        missing_alt = any('alt=' not in img.lower() for img in img_tags)
-        has_alt = not missing_alt
-        total_checks += 1
-        passed_checks += int(has_alt)
-    
-    # Check for form labels
-    input_tags = re.findall(r'<input[^>]*>', html_code)
-    if input_tags:
-        labels = re.findall(r'<label[^>]*>', html_code)
-        has_labels = len(labels) > 0
-        total_checks += 1
-        passed_checks += int(has_labels)
-    
-    # Calculate score
-    score = passed_checks / total_checks if total_checks > 0 else 0.0
-    
-    return score
+    aria_check = re.search(r'aria-[a-zA-Z]+=', html_code) is not None
+    role_check = re.search(r'role="[^"]+"', html_code) is not None
+    return aria_check and role_check
+
 
 def llm_generate(prompt: str, model: str, timeout_seconds: int = 600) -> Optional[str]:
     """Generate response using local LLM API via Ollama with timeout"""
@@ -136,16 +80,12 @@ def llm_generate(prompt: str, model: str, timeout_seconds: int = 600) -> Optiona
                     if 'response' in json_response:
                         full_response += json_response['response']
             
-
-            # Use external API
-            # full_response = get_completion(prompt)
-
-            # Extract response after </think> tag if present
-            if '</think>' in full_response:
-                full_response = full_response.split('</think>')[-1].strip()
-                # Split by newlines and take everything after the first empty line
-                if '\n\n' in full_response:
-                    full_response = full_response.split('\n\n', 1)[1].strip()
+            # # Extract response after </think> tag if present
+            # if '</think>' in full_response:
+            #     full_response = full_response.split('</think>')[-1].strip()
+            #     # Split by newlines and take everything after the first empty line
+            #     if '\n\n' in full_response:
+            #         full_response = full_response.split('\n\n', 1)[1].strip()
                 
             return full_response
             
@@ -155,7 +95,6 @@ def llm_generate(prompt: str, model: str, timeout_seconds: int = 600) -> Optiona
     except Exception as e:
         logging.error(f"Error generating with CodeLlama: {str(e)}")
         return None
-    
 
 def create_and_split_dataset(
     data: List[Dict[str, str]], 

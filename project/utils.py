@@ -2,13 +2,16 @@
 import re
 import json
 import signal
+import random
 import logging
 import requests
 from tqdm import tqdm
 from openai import OpenAI
 from typing import Optional
 from transformers import pipeline
+from typing import List, Dict, Union
 from contextlib import contextmanager
+from datasets import Dataset, DatasetDict
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -153,33 +156,6 @@ def llm_generate(prompt: str, model: str, timeout_seconds: int = 600) -> Optiona
         logging.error(f"Error generating with CodeLlama: {str(e)}")
         return None
     
-
-def get_completion(prompt_template: str) -> str:
-    
-    client = OpenAI(
-      base_url="https://integrate.api.nvidia.com/v1",
-      api_key="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"
-    )
-
-    completion = client.chat.completions.create(
-      model="deepseek-ai/deepseek-r1-distill-qwen-32b",
-      messages=[{"role": "user", "content": f"{prompt_template}"}],
-      temperature=0.6,
-      top_p=0.7,
-      max_tokens=4096,
-      stream=True
-    )
-
-    result = ""
-    for chunk in completion:
-        if chunk.choices[0].delta.content is not None:
-            result += chunk.choices[0].delta.content
-    return result
-
-import random
-import json
-from datasets import Dataset, DatasetDict
-from typing import List, Dict, Union
 
 def create_and_split_dataset(
     data: List[Dict[str, str]], 

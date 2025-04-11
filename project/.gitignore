@@ -5,6 +5,7 @@
 /files
 /generated_dataset_old
 /final_dataset_old_data
+/final_dataset
 /finetune_model
 /prompt_preprocessing_old
 /embeddings

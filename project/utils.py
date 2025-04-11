@@ -3,6 +3,8 @@ import json
 import re
 import random
 import logging
+import signal
+import requests
 from transformers import pipeline
 from tqdm import tqdm
 from typing import Optional

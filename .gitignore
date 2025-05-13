@@ -1,1 +1,7 @@
 /archive
+/project/models
+/project/html_files
+/project/html_files_old
+/project/wandb
+project/developer_prompt_dataset_v2.csv
+project/developer_prompt_dataset.csv

@@ -126,32 +126,79 @@ def create_and_split_dataset(
     # Shuffle the data
     random.seed(seed)
     random.shuffle(combined_data)
+    if train_ratio > 0:
+        # Split the data
+        split_idx = int(len(combined_data) * train_ratio)
+        train_data = combined_data[split_idx:]
+        test_data = combined_data[:split_idx]
+        
+        # Save to JSONL files if requested
+        if save_jsonl:
+            for split_name, split_data in [("train", train_data), ("validation", test_data)]:
+                with open(f'{split_name}.jsonl', 'w') as f:
+                    for item in split_data:
+                        json.dump(item, f)
+                        f.write('\n')
+                print(f"Created {split_name}.jsonl with {len(split_data)} examples")
+        
+        # Create dataset dictionary
+        dataset = DatasetDict({
+            'train': Dataset.from_list(train_data),
+            'test': Dataset.from_list(test_data)
+        })
+        
+        # Print dataset statistics
+        print(f"Train dataset size: {len(dataset['train'])}")
+        print(f"Test dataset size: {len(dataset['test'])}")
     
-    # Split the data
-    split_idx = int(len(combined_data) * train_ratio)
-    train_data = combined_data[:split_idx]
-    test_data = combined_data[split_idx:]
-    
-    # Save to JSONL files if requested
-    if save_jsonl:
-        for split_name, split_data in [("train", train_data), ("validation", test_data)]:
-            with open(f'{split_name}.jsonl', 'w') as f:
-                for item in split_data:
-                    json.dump(item, f)
-                    f.write('\n')
-            print(f"Created {split_name}.jsonl with {len(split_data)} examples")
-    
-    # Create dataset dictionary
-    dataset = DatasetDict({
-        'train': Dataset.from_list(train_data),
-        'test': Dataset.from_list(test_data)
-    })
-    
-    # Print dataset statistics
-    print(f"Train dataset size: {len(dataset['train'])}")
-    print(f"Test dataset size: {len(dataset['validation'])}")
+    else:
+        dataset = DatasetDict({
+            'train': Dataset.from_list(combined_data)
+        })
     
     # Save the dataset
     dataset.save_to_disk(output_dir)
     
     return dataset
+
+
+
+import re
+
+def clean_html_string(input_string):
+    # Find the doctype tag
+    doctype_index = input_string.find('<!DOCTYPE html>')
+    
+    if doctype_index == -1:
+        # If the doctype tag doesn't exist in the string
+        cleaned_string = input_string
+    else:
+        # Return only the part of the string starting from the doctype tag
+        cleaned_string = input_string[doctype_index:]
+    
+    # Remove everything after </html> tag if it exists
+    html_end_pattern = r'(</html>)[\s\S]*$'
+    cleaned_string = re.sub(html_end_pattern, r'\1', cleaned_string)
+    
+    return cleaned_string
+
+# Example usage:
+# html_string = "<!DOCTYPE html><html><body>Hello world!</body></html>"
+# cleaned_string = clean_html_string(html_string)
+# print(cleaned_string)
+# Output: <!DOCTYPE html><html><body>Hello world!</body></html>
+
+def write_html_to_file(html_content: str, output_path: str) -> None:
+    """
+    Writes HTML content to a file while preserving formatting.
+    
+    Args:
+        html_content (str): The HTML content to write
+        output_path (str): Path where the HTML file should be saved
+    """
+    try:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        print(f"Successfully wrote HTML to {output_path}")
+    except Exception as e:
+        print(f"Error writing HTML file: {str(e)}")

@@ -1,3 +1,4 @@
+import os
 import torch
 from transformers import (
     AutoTokenizer,
@@ -71,7 +72,7 @@ def generate_and_tokenize_prompt(data_point, tokenizer):
     )
 
 def prepare_dataset(tokenizer):
-    dataset = load_from_disk("./final_dataset/final_dataset_3600")
+    dataset = load_from_disk("./final_dataset/final_webpages_only_train_3500_test_500")
     
     # Add dataset validation
     if not all(col in dataset["train"].column_names for col in ["prompt", "code"]):
@@ -85,6 +86,9 @@ def prepare_dataset(tokenizer):
         remove_columns=dataset["train"].column_names
     )
     
+    # print(f"Original dataset sizes - Train: {len(dataset['train'])}")
+    # print(f"Tokenized dataset sizes - Train: {len(tokenized_dataset['train'])}")
+
     print(f"Original dataset sizes - Train: {len(dataset['train'])}, Test: {len(dataset['test'])}")
     print(f"Tokenized dataset sizes - Train: {len(tokenized_dataset['train'])}, Test: {len(tokenized_dataset['test'])}")
     
@@ -94,28 +98,35 @@ def main():
     # Initialize model and tokenizer
     model, tokenizer = load_model_and_tokenizer()
     
+    save_path = "models"
+    os.makedirs(save_path, exist_ok=True)
+
     # Prepare dataset
     tokenized_dataset = prepare_dataset(tokenizer)
     print(f"Size of tokenized dataset: {len(tokenized_dataset['train'])}")
     # Update training arguments
     training_args = TrainingArguments(
-        output_dir="./results",
+        output_dir=f"{save_path}/results",
         num_train_epochs=3,
         per_device_train_batch_size=4,
         gradient_accumulation_steps=16,
         per_device_eval_batch_size=4,
         eval_strategy="steps",
-        eval_steps=100,
+        eval_steps=10,
         warmup_ratio=0.1,
         weight_decay=0.01,
+        lr_scheduler_type="cosine",
         logging_dir="./logs",
         logging_steps=10,
         save_strategy="steps",
-        save_steps=100,
+        save_steps=10,
+        save_total_limit=2,
+        load_best_model_at_end=True,
         learning_rate=2e-4,
         fp16=True,
         gradient_checkpointing=True,
-        report_to="tensorboard"
+        report_to="wandb",
+        run_name="code-a11y-4000-run-2"
     )
     
     # Initialize data collator
@@ -136,11 +147,11 @@ def main():
     # Start training
     trainer.train()
     
-    # Save the model
-    trainer.save_model("./finetuned_codellama")
+    # # Save the model
+    # trainer.save_model(f"./{save_path}/finetuned_codellama-run-2")
     
     # Save the LoRA model
-    model.save_pretrained("./finetuned_codellama_lora")
+    model.save_pretrained(f"./{save_path}/models/finetuned_codellama_lora_run_2")
 
 if __name__ == "__main__":
     main()

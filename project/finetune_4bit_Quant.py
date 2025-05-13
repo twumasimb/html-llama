@@ -1,22 +1,18 @@
 import os
 import torch
 from transformers import (
-    AutoTokenizer,
-    AutoModelForCausalLM,
-    TrainingArguments,
     Trainer,
-    DataCollatorForLanguageModeling,
-    BitsAndBytesConfig
+    AutoTokenizer, 
+    TrainingArguments, 
+    BitsAndBytesConfig, 
+    AutoModelForCausalLM,
+    DataCollatorForLanguageModeling
 )
-
-import torch
 from peft import (
-    LoraConfig,
+    LoraConfig, 
     get_peft_model,
-    prepare_model_for_kbit_training,
+    prepare_model_for_kbit_training
 )
-
-
 from datasets import load_from_disk
 
 def load_model_and_tokenizer():
@@ -24,11 +20,12 @@ def load_model_and_tokenizer():
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     tokenizer.pad_token = tokenizer.eos_token
     
-    # Configure quantization for 8-bit instead of 4-bit
+    # Configure quantization
     bnb_config = BitsAndBytesConfig(
-        load_in_8bit=True,
-        torch_dtype=torch.float16,
-        device_map="auto"
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.float16,
+        bnb_4bit_use_double_quant=True
     )
     
     model = AutoModelForCausalLM.from_pretrained(
@@ -42,7 +39,7 @@ def load_model_and_tokenizer():
     lora_config = LoraConfig(
         r=16,
         lora_alpha=32,
-        target_modules=["q_proj", "v_proj"],
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
         lora_dropout=0.05,
         bias="none",
         task_type="CAUSAL_LM"
@@ -61,19 +58,21 @@ def generate_and_tokenize_prompt(data_point, tokenizer):
 {data_point["prompt"]}
 
 ### Response:
-```
 {data_point["code"]}
-```
 """
-    return tokenizer(
+    tokenized = tokenizer(
         full_prompt,
-        padding=True,
+        padding="max_length",
         truncation=True,
-        max_length=2048  # removed return_tensors="pt"
+        max_length=2048,
+        return_tensors=None
     )
+    
+    tokenized["labels"] = tokenized["input_ids"].copy()
+    return tokenized
 
 def prepare_dataset(tokenizer):
-    dataset = load_from_disk("./final_dataset/final_dataset_3600")
+    dataset = load_from_disk("./final_dataset/final_webpages_only_train_3500_test_500")
     
     # Add dataset validation
     if not all(col in dataset["train"].column_names for col in ["prompt", "code"]):
@@ -95,11 +94,14 @@ def prepare_dataset(tokenizer):
 def main():
     # Initialize model and tokenizer
     model, tokenizer = load_model_and_tokenizer()
+    
     save_path = "models"
     os.makedirs(save_path, exist_ok=True)
+
     # Prepare dataset
     tokenized_dataset = prepare_dataset(tokenizer)
     print(f"Size of tokenized dataset: {len(tokenized_dataset['train'])}")
+
     # Update training arguments
     training_args = TrainingArguments(
         output_dir=f"{save_path}/results",
@@ -107,18 +109,22 @@ def main():
         per_device_train_batch_size=4,
         gradient_accumulation_steps=16,
         per_device_eval_batch_size=4,
-        eval_strategy="epoch",
+        eval_strategy="steps",
+        eval_steps=10,
         warmup_ratio=0.1,
         weight_decay=0.01,
         lr_scheduler_type="cosine",
         logging_dir="./logs",
         logging_steps=10,
         save_strategy="steps",
-        save_steps=100,
+        save_steps=10,
+        save_total_limit=2,
+        load_best_model_at_end=True,
         learning_rate=2e-4,
         fp16=True,
         gradient_checkpointing=True,
-        report_to="tensorboard"
+        report_to="wandb",
+        run_name="code-a11y-4000-4bit-run-1"
     )
     
     # Initialize data collator
@@ -139,12 +145,8 @@ def main():
     # Start training
     trainer.train()
     
-    # Save the model
-    trainer.save_model(f"{save_path}/codellama-a11y-{len(tokenized_dataset['train'])}")
-    
-    # Merge LoRA weights with the base model
-    model = model.merge_and_unload()
-    model.save_pretrained("./codellama-a11y-merged-3600")
+    # Save the LoRA model
+    model.save_pretrained(f"./{save_path}/finetuned_codellama_4bit_lora_run_1")
 
 if __name__ == "__main__":
     main()

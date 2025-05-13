@@ -15,7 +15,7 @@ def generate_webpages(prompts, output_file):
             json.dump([], f)
     
     results = []
-    for idx, prompt in enumerate(tqdm(prompts, desc="Generating webpages")):
+    for idx, prompt in enumerate(tqdm(prompts['selected_prompts'], desc="Generating webpages")):
         solution_prompt = f"Generate accessible webpage HTML code for the following prompt:\n{prompt} and the following accessibility prompt:\n{ACCESSIBILITY_PROMPT_TEMPLATE}. Put the code in a ``` ```"
         candidate = llm_generate(solution_prompt, model="deepseek-r1:32b")
         # print(candidate) #For debugging

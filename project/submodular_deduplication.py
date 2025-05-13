@@ -232,11 +232,14 @@ def select_representative_prompts(prompts_file="./prompts.json", top_k=100, kern
     Returns:
         List of selected prompt indices
     """
-    # Load and clean the prompts
-    cleaned_prompts = load_prompts(prompts_file)
-    if not cleaned_prompts:
-        print("No prompts to process.")
-        return []
+    # # Load and clean the prompts
+    # cleaned_prompts = load_prompts(prompts_file)
+    # if not cleaned_prompts:
+    #     print("No prompts to process.")
+    #     return []
+
+    with open(prompts_file, 'r') as f:
+        cleaned_prompts = json.load(f)
     
     # Compute embeddings for all prompts
     print(f"Computing embeddings for {len(cleaned_prompts)} prompts...")
